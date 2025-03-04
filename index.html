@@ -82,28 +82,6 @@
             background: #0056b3;
             color: white;
         }
-
-        .alert-buttons {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .alert-button {
-            background: #ffcc00;
-            border: none;
-            padding: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
-
-        .alert-button.checked {
-            background: #4CAF50;
-            color: white;
-        }
     </style>
 </head>
 <body>
@@ -116,16 +94,16 @@
         <h2>임박한 중요 이벤트</h2>
         <table>
             <tr>
+                <th>#</th>
                 <th>이벤트</th>
-                <th>D-day</th>
-                <th>알림 설정</th>
+                <th>남은 시간</th>
             </tr>
         </table>
     </main>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const events = [
-                { name: "마지막 테스트", date: "2025-03-04T17:20:00" },
+                { name: "테스트", date: "2025-02-24T23:30:00" },
                 { name: "기말고사", date: "2025-07-01T08:40:00" },
                 { name: "크리스마스", date: "2025-12-25T00:00:00" },
                 { name: "2026", date: "2026-01-01T00:00:00" }
@@ -133,87 +111,39 @@
 
             const table = document.querySelector("table");
 
-            function requestNotificationPermission() {
-                if (Notification.permission !== "granted") {
-                    Notification.requestPermission();
-                }
-            }
-
-            function scheduleNotification(eventName, timeDiff, button) {
-                setTimeout(() => {
-                    new Notification(`${eventName} 일정 알림`, {
-                        body: `이벤트가 곧 시작됩니다!`,
-                        icon: "https://cdn-icons-png.flaticon.com/512/1827/1827341.png"
-                    });
-                }, timeDiff);
-                button.classList.add("checked");
-                localStorage.setItem(button.dataset.event + "-" + button.dataset.alert, "checked");
-            }
-
-            function addAlertButtons(eventName, eventDate) {
-                const alertTimes = [
-                    { label: "3일 전", time: 3 * 86400 * 1000 },
-                    { label: "1일 전", time: 86400 * 1000 },
-                    { label: "2시간 전", time: 2 * 3600 * 1000 },
-                    { label: "30분 전", time: 30 * 60 * 1000 },
-                    { label: "5분 전", time: 5 * 60 * 1000 },
-                    { label: "종료 시", time: 0 }
-                ];
-
-                const container = document.createElement("div");
-                container.className = "alert-buttons";
-                alertTimes.forEach(alert => {
-                    const button = document.createElement("button");
-                    button.className = "alert-button";
-                    button.textContent = alert.label;
-                    button.dataset.event = eventName;
-                    button.dataset.alert = alert.label;
-                    if (localStorage.getItem(eventName + "-" + alert.label) === "checked") {
-                        button.classList.add("checked");
-                    }
-                    button.onclick = () => {
-                        const now = new Date();
-                        const diff = new Date(eventDate) - now - alert.time;
-                        if (diff > 0) {
-                            scheduleNotification(eventName, diff, button);
-                            alert("알림이 설정되었습니다!");
-                        } else {
-                            alert("이미 지난 시간입니다.");
-                        }
-                    };
-                    container.appendChild(button);
-                });
-                return container;
+            function formatTimeDiff(diff) {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                return `${days}d ${hours}h ${minutes}m ${seconds}s`;
             }
 
             function updateCountdown() {
                 table.innerHTML = `
                     <tr>
+                        <th>#</th>
                         <th>이벤트</th>
-                        <th>D-day</th>
-                        <th>알림 설정</th>
+                        <th>남은 시간</th>
                     </tr>
                 `;
                 
                 const now = new Date();
-                events.forEach(event => {
+                events.forEach((event, index) => {
                     const eventDate = new Date(event.date);
                     const diffTime = eventDate - now;
-                    const countdown = diffTime > 0 ? Math.floor(diffTime / 86400000) + "d " + new Date(diffTime).toISOString().substr(11, 8) : "종료됨";
+                    const countdown = diffTime > 0 ? formatTimeDiff(diffTime) : "종료됨";
                     
                     const row = document.createElement("tr");
                     row.innerHTML = `
+                        <td>${index + 1}</td>
                         <td>${event.name} (${eventDate.toLocaleString()})</td>
                         <td>${countdown}</td>
                     `;
-                    const alertCell = document.createElement("td");
-                    alertCell.appendChild(addAlertButtons(event.name, event.date));
-                    row.appendChild(alertCell);
                     table.appendChild(row);
                 });
             }
             
-            requestNotificationPermission();
             updateCountdown();
             setInterval(updateCountdown, 1000);
         });
